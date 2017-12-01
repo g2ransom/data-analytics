@@ -2,7 +2,10 @@ from pymongo import MongoClient
 import pandas as pd
 import socket
 from geoip import geolite2
-import pycountry
+from geoip2.errors import AddressNotFoundError
+from math import asin, sqrt, sin, cos, acos, radians, pi
+
+import geoip2.database
 
 client = MongoClient()
 
@@ -14,7 +17,7 @@ pipeline = [
 	{"$project": {"_id": 0, "addresses": 1}}
 ]
 
-ip_addresses = list(db.contacts_test.aggregate(pipeline))
+ip_addresses = list(db.contacts_11.aggregate(pipeline))
 
 df = pd.DataFrame(ip_addresses)
 
@@ -29,42 +32,31 @@ for address in addresses:
 		except:
 			socket.error
 
-
-country_codes = []
-for addr in cleaned_addresses:
-	match = geolite2.lookup(addr)
-	try:
-		country_codes.append(match.country)
-	except (AttributeError, ValueError):
-		country_codes.append('N/A')
-
+reader = geoip2.database.Reader('GeoLite2-City.mmdb')
 
 country_names = []
-
-for code in country_codes:
+country_codes = []
+region_names = []
+city_names = []
+long_lat = []
+for addr in cleaned_addresses:
 	try:
-		country_info = pycountry.countries.get(alpha_2=code)
-		country_names.append(country_info.name)
-	except KeyError:
+		response = reader.city(addr.strip())
+		country_names.append(response.country.name)
+		country_codes.append(response.country.iso_code)
+		region_names.append(response.subdivisions.most_specific.name)
+		city_names.append(response.city.name)
+		long_lat.append((response.location.longitude, response.location.latitude))
+	except (ValueError, AddressNotFoundError):
 		country_names.append('N/A')
-
-sanctions_list = ['Balkans', "Belarus", 'Burundi', 'Cuba', 'Congo', 'Iran', 'Iraq', 'Lebanon', 'Libya', 'North Korea',
-					'Somalia', 'Sudan', 'South Sudan', 'Syria', 'Ukraine', 'Venezuela', 'Yemen', 'Zimbabwe']
-
-flag = []
-
-for name in country_names:
-	if name in sanctions_list:
-		flag.append(1)
-	else:
-		flag.append(0)
+		country_codes.append('N/A')
+		region_names.append('N/A')
+		city_names.append('N/A')
+		long_lat.append('N/A')
 
 
-df = pd.DataFrame({'IP Address': cleaned_addresses, 'Country Codes': country_codes, 'Country Names': country_names, 'Flags': flag})
-print(df.head())
+df = pd.DataFrame({'IP Addresses': cleaned_addresses, 'Country Names': country_names, 'Country Codes': country_codes, 
+				'Region Names': region_names, 'City Names': city_names, 'Longtitude, Latitude': long_lat})
 
-sanctioned_ip = df[df['Flags'] == 1].count()['Flags']
-na_list = df[df['Country Names'] == 'N/A'].count()['Country Names']
 
-print(sanctioned_ip)
-print(na_list)
+df = df[df['Country Names'] != 'N/A']
