@@ -60,3 +60,4 @@ df = pd.DataFrame({'IP Addresses': cleaned_addresses, 'Country Names': country_n
 
 
 df = df[df['Country Names'] != 'N/A']
+df.to_csv("ofac.csv", encoding='utf8')
