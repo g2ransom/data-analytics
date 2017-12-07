@@ -1,7 +1,6 @@
 from pymongo import MongoClient
 import pandas as pd
 import socket
-from geoip import geolite2
 from geoip2.errors import AddressNotFoundError
 from math import asin, sqrt, sin, cos, acos, radians, pi
 
