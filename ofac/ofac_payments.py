@@ -69,7 +69,5 @@ list_df = pd.concat([nodes, ips], axis=1)
 sanctions = ['Iran', 'Iraq', 'North Korea', 'Syria', 'Cuba', 'Sudan']
 sanction_df = list_df.reindex(sanctions, fill_value=0)
 sanction_dict = sanction_df.to_dict('index')
-with open('jan_ofac.json', 'w') as fp:
+with open('feb_ofac.json', 'w') as fp:
 	json.dump(sanction_dict, fp, index=4)
-
-# df.to_csv("jan_payments.csv", encoding='utf8', index=False)
